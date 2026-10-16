@@ -134,6 +134,8 @@ git push origin v0.1.1
 
 手动运行还可以通过 `source_run_id` 指定本仓库已经成功完成的多平台构建，复用其包，避免重复编译。此时标签指向该次构建实际使用的提交，而不是当前分支的新提交。工作流校验产物的完整性和版本后发布；不需要将包下载到本地。
 
+复用历史构建时，如果该提交的工作流文件与当前默认分支不同，且对应版本标签尚不存在，`GITHUB_TOKEN` 无法创建指向该历史提交的 Release；GitHub 要求额外的工作流写权限。仓库维护者需先通过有仓库写权限的 SSH 执行 `git tag v版本号 构建提交SHA` 和 `git push origin v版本号`，确保标签指向实际构建提交，再使用 `source_run_id` 发布。普通推送标签发布时，标签已经存在，不需要这一步。[GitHub Release API 权限说明](https://docs.github.com/en/rest/releases/releases#create-a-release)
+
 Actions 的 **Artifacts** 仅作为构建及发布过程的中间产物，保留 30 天；用户下载入口以 Release 为准。
 
 ### 解压后启动
