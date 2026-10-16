@@ -54,7 +54,7 @@ Windows PowerShell，在项目根目录分别启动：
 .\target\release\myfrpc.exe --allow-insecure
 ```
 
-Linux，在项目根目录分别启动：
+Linux / macOS，在项目根目录分别启动：
 
 ```sh
 # 服务端，读取项目根目录的 server.json
@@ -82,6 +82,101 @@ Linux，在项目根目录分别启动：
 不要求本地服务是 HTTP，也可以转发 SSH、数据库等 TCP 服务。Web 页面关闭不会停止程序；关闭程序或按 Ctrl+C 才会停止穿透。
 
 后续修改密码时，点击页面右上角“退出登录”旁的“修改密码”，输入当前密码、新密码和确认密码。新密码至少 12 个字符，修改成功后所有现有管理会话立即失效，需要重新登录。若初始化时已显式配置至少 12 个字符的自定义管理密码，则直接使用该密码登录。
+
+## 多平台打包与下载
+
+支持以下 4 个发布目标，每个包同时包含服务端、客户端和 WS / SSE 示例程序。文件名中的版本号来自 `Cargo.toml`，当前为 `0.1.0`。
+
+| 平台 | Rust target | 压缩包 |
+| --- | --- | --- |
+| Windows x64 | `x86_64-pc-windows-msvc` | `my-frp-0.1.0-windows-x86_64.zip` |
+| Linux x64（musl） | `x86_64-unknown-linux-musl` | `my-frp-0.1.0-linux-x86_64.tar.gz` |
+| macOS Intel | `x86_64-apple-darwin` | `my-frp-0.1.0-macos-x86_64.tar.gz` |
+| macOS Apple Silicon | `aarch64-apple-darwin` | `my-frp-0.1.0-macos-aarch64.tar.gz` |
+
+### 从 GitHub Actions 下载
+
+在仓库的 [Actions → Build release packages](https://github.com/cmsmll/my-frp/actions/workflows/build-release.yml) 点击 **Run workflow**，选择分支后启动。推送 `v*` 标签也会触发构建。工作流使用对应系统和 CPU 架构的 GitHub runner 编译，并运行发布模式的完整 Rust 测试；Linux 使用 musl 工具链。
+
+构建成功后，在该次运行页面底部的 **Artifacts** 下载对应 target 的产物。每个 artifact 内含平台压缩包和 `SHA256SUMS`，保留 30 天；GitHub 网页下载的 artifact 外层也是 ZIP，需要先解开外层，再解开平台包。工作流只上传构建产物，不会自动创建 GitHub Release。
+
+压缩包内提供 `myfrps`、`myfrpc`、`server.json`、生产配置模板、`README.md`、中文 `QUICKSTART.txt` 和 `examples/stream_service`；Windows 程序带 `.exe` 后缀，Linux 包另外包含 `deploy/` 下的 systemd 模板。包内不包含运行数据库、签名私钥或真实管理凭证。两个 macOS 包是对应架构的命令行程序，未进行 Apple Developer 签名或公证。
+
+校验平台压缩包，Windows 使用 PowerShell 查看 SHA-256 并与同目录的 `SHA256SUMS` 对照：
+
+```powershell
+Get-FileHash .\my-frp-0.1.0-windows-x86_64.zip -Algorithm SHA256
+Get-Content .\SHA256SUMS
+```
+
+Linux 和 macOS 分别使用：
+
+```sh
+# Linux
+sha256sum --check SHA256SUMS
+# macOS
+shasum -a 256 --check SHA256SUMS
+```
+
+### 解压后启动
+
+在解压得到的 `my-frp-版本-平台-架构` 目录中运行，服务端和客户端各占一个终端。包内默认配置用于本机明文联调；公网部署应改用 TLS 配置。
+
+```powershell
+# Windows：终端 1，服务端读取同目录 server.json
+.\myfrps.exe .\server.json
+# Windows：终端 2，客户端
+.\myfrpc.exe --allow-insecure
+# 可选：终端 3，运行本地 WS / SSE 测试服务
+.\examples\stream_service.exe 127.0.0.1:18090
+```
+
+```sh
+# Linux / macOS：终端 1
+./myfrps ./server.json
+# Linux / macOS：终端 2
+./myfrpc --allow-insecure
+# 可选：终端 3
+./examples/stream_service 127.0.0.1:18090
+```
+
+访问服务端 <http://127.0.0.1:7400> 和客户端 <http://127.0.0.1:7401>，按前文创建隧道。若运行了示例服务，本地地址填写 `127.0.0.1:18090`。首次管理密码为 `admin`，登录后必须修改。程序停止后配置和凭证仍保存在各自的数据目录中。
+
+### 在本机编译打包
+
+安装 Rust stable、Python 3.11 或更新版本，以及目标平台的 C 编译器。打包脚本只收集已编译的程序，不代替编译；输出到 `dist/`，并更新 `dist/SHA256SUMS`。Linux 和 macOS 的 tar 包保留程序执行权限。
+
+Windows x64（需要 Visual Studio C++ Build Tools）：
+
+```powershell
+rustup target add x86_64-pc-windows-msvc
+cargo build --release --locked --target x86_64-pc-windows-msvc --bins --example stream_service
+python scripts/package-release.py --target x86_64-pc-windows-msvc --profile release --output-dir dist
+```
+
+Linux x64，以下依赖安装命令适用于 Ubuntu / Debian：
+
+```sh
+sudo apt-get update
+sudo apt-get install --yes musl-tools
+rustup target add x86_64-unknown-linux-musl
+export CC_x86_64_unknown_linux_musl=musl-gcc
+export CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc
+cargo build --release --locked --target x86_64-unknown-linux-musl --bins --example stream_service
+python3 scripts/package-release.py --target x86_64-unknown-linux-musl --profile release --output-dir dist
+```
+
+macOS 需要 Xcode Command Line Tools（首次安装运行 `xcode-select --install`），在对应架构的 Mac 上执行：
+
+```sh
+# Intel Mac 使用 x86_64-apple-darwin；Apple Silicon 使用 aarch64-apple-darwin
+TARGET=aarch64-apple-darwin
+rustup target add "$TARGET"
+cargo build --release --locked --target "$TARGET" --bins --example stream_service
+python3 scripts/package-release.py --target "$TARGET" --profile release --output-dir dist
+```
+
+跨系统编译还需要目标系统的链接器、C 工具链和 SDK，只有 `rustup target add` 不足以完成构建。统一生成全部平台包时使用上面的 GitHub Actions 工作流；它在 Windows、Linux 和两种架构的 macOS 环境中并行完成编译、测试和打包。
 
 ## WebSocket 与 SSE 示例
 

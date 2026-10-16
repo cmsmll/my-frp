@@ -1,5 +1,8 @@
 /target/
+/dist/
 /data/
+__pycache__/
+*.py[cod]
 *.sqlite*
 *.pem
 .env

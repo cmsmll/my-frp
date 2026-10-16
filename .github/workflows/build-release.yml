@@ -1,0 +1,78 @@
+name: Build release packages
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            runner: windows-2022
+          - target: x86_64-unknown-linux-musl
+            runner: ubuntu-24.04
+          - target: x86_64-apple-darwin
+            runner: macos-15-intel
+          - target: aarch64-apple-darwin
+            runner: macos-15
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: '1'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install Linux musl toolchain
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes musl-tools
+          echo "CC_x86_64_unknown_linux_musl=musl-gcc" >> "$GITHUB_ENV"
+          echo "CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc" >> "$GITHUB_ENV"
+
+      - name: Install stable Rust target
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add ${{ matrix.target }}
+          rustc --version
+          cargo --version
+
+      - name: Build server, client and streaming demo
+        run: cargo build --release --locked --target ${{ matrix.target }} --bins --example stream_service
+
+      - name: Run native release tests
+        run: cargo test --release --all-targets --locked --target ${{ matrix.target }} -- --test-threads=2
+
+      - name: Package release
+        run: python scripts/package-release.py --target ${{ matrix.target }} --profile release --output-dir dist
+
+      - name: Upload package and checksums
+        uses: actions/upload-artifact@v7
+        with:
+          name: my-frp-${{ matrix.target }}
+          path: |
+            dist/*.zip
+            dist/*.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
