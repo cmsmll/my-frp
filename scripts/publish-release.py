@@ -18,6 +18,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 import tomllib
 from urllib.parse import quote
 import zipfile
@@ -211,6 +212,20 @@ def find_release(repo: str, tag: str) -> dict | None:
     return matches[0] if matches else None
 
 
+def wait_for_release(repo: str, tag: str, release_id: int | None = None,
+                     draft: bool | None = None) -> dict | None:
+    """Bounded read-after-write retries for GitHub's release indexes/state."""
+    for attempt in range(10):
+        release = (find_release(repo, tag) if release_id is None
+                   else api(f"repos/{repo}/releases/{release_id}", optional=True))
+        if (release is not None and release.get("tag_name") == tag
+                and (draft is None or release.get("draft") is draft)):
+            return release
+        if attempt < 9:
+            time.sleep(1)
+    return None
+
+
 def check_release_target(repo: str, release: dict, tag: str, sha: str) -> None:
     target = require_tag_target(repo, tag, sha)
     if target is None and (not release.get("draft") or release.get("target_commitish") != sha):
@@ -304,20 +319,21 @@ def publish(args, output: Path) -> int:
         if "-" in version:
             command.append("--prerelease")
         gh(command)
-        release = find_release(args.repo, tag)
+        release = wait_for_release(args.repo, tag, draft=True)
         if release is None or not release.get("draft"):
             raise ReleaseError("Could not find the newly created draft release")
         check_release_target(args.repo, release, tag, run["head_sha"])
     if missing:
         gh(["release", "upload", tag, "--repo", args.repo, *[str(packages[name]) for name in missing]])
-    release = find_release(args.repo, tag)
+    release_id = release["id"]
+    release = wait_for_release(args.repo, tag, release_id=release_id, draft=True)
     if release is None or not release.get("draft"):
         raise ReleaseError("Draft release changed during upload; refusing to publish")
     check_release_target(args.repo, release, tag, run["head_sha"])
     verify_assets(args.repo, release, packages, output)
     gh(["release", "edit", tag, "--repo", args.repo, "--draft=false",
         "--latest=" + ("false" if "-" in version else "true")])
-    release = find_release(args.repo, tag)
+    release = wait_for_release(args.repo, tag, release_id=release_id, draft=False)
     if release is None or release.get("draft"):
         raise ReleaseError("The release was not published successfully")
     require_tag_target(args.repo, tag, run["head_sha"], required=True)
