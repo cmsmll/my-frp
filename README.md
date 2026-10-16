@@ -94,11 +94,9 @@ Linux / macOS，在项目根目录分别启动：
 | macOS Intel | `x86_64-apple-darwin` | `my-frp-0.1.0-macos-x86_64.tar.gz` |
 | macOS Apple Silicon | `aarch64-apple-darwin` | `my-frp-0.1.0-macos-aarch64.tar.gz` |
 
-### 从 GitHub Actions 下载
+### 从 GitHub Release 下载
 
-在仓库的 [Actions → Build release packages](https://github.com/cmsmll/my-frp/actions/workflows/build-release.yml) 点击 **Run workflow**，选择分支后启动。推送 `v*` 标签也会触发构建。工作流使用对应系统和 CPU 架构的 GitHub runner 编译，并运行发布模式的完整 Rust 测试；Linux 使用 musl 工具链。
-
-构建成功后，在该次运行页面底部的 **Artifacts** 下载对应 target 的产物。每个 artifact 内含平台压缩包和 `SHA256SUMS`，保留 30 天；GitHub 网页下载的 artifact 外层也是 ZIP，需要先解开外层，再解开平台包。工作流只上传构建产物，不会自动创建 GitHub Release。
+在 [最新 Release](https://github.com/cmsmll/my-frp/releases/latest) 的 **Assets** 中直接下载对应平台压缩包及 `SHA256SUMS`。发布包保存在 GitHub Release，日常开发和发布不需要在本地创建 `dist/`。
 
 压缩包内提供 `myfrps`、`myfrpc`、`server.json`、生产配置模板、`README.md`、中文 `QUICKSTART.txt` 和 `examples/stream_service`；Windows 程序带 `.exe` 后缀并静态链接 C 运行库，Linux 包另外包含 `deploy/` 下的 systemd 模板。包内不包含运行数据库、签名私钥或真实管理凭证。两个 macOS 包是对应架构的命令行程序，未进行 Apple Developer 签名或公证。
 
@@ -117,6 +115,26 @@ sha256sum --check SHA256SUMS
 # macOS
 shasum -a 256 --check SHA256SUMS
 ```
+
+`SHA256SUMS` 包含全部 4 个平台包；使用上面的完整清单校验命令时，需将全部包下载到同一目录。只下载一个平台包时，可直接计算该文件的 SHA-256，并与清单中的对应行比较。
+
+### 自动构建与发布
+
+推送 `v*` 标签后，[Build release packages 工作流](https://github.com/cmsmll/my-frp/actions/workflows/build-release.yml) 会在 Windows、Linux 和两种架构的 macOS runner 上并行编译，执行发布模式的完整 Rust 测试，然后打包。Linux 使用 musl 工具链。全部 4 个目标成功后，才会将 4 个压缩包和合并的 `SHA256SUMS` 发布到 GitHub Release。
+
+发布新版本时，先更新 `Cargo.toml` 和 `Cargo.lock` 中的包版本并提交，再推送对应标签，例如：
+
+```sh
+git tag v0.1.1
+git push origin main
+git push origin v0.1.1
+```
+
+也可以在 Actions 页面点击 **Run workflow** 手动发布；`tag` 留空时，使用所选源码的 Cargo 版本生成 `v版本号`，填写时必须与该版本一致。已有标签和正式发布资产受到校验保护，不会用不同构建覆盖已发布的版本；修改程序后应递增版本并创建新标签。
+
+手动运行还可以通过 `source_run_id` 指定本仓库已经成功完成的多平台构建，复用其包，避免重复编译。此时标签指向该次构建实际使用的提交，而不是当前分支的新提交。工作流校验产物的完整性和版本后发布；不需要将包下载到本地。
+
+Actions 的 **Artifacts** 仅作为构建及发布过程的中间产物，保留 30 天；用户下载入口以 Release 为准。
 
 ### 解压后启动
 
@@ -144,7 +162,7 @@ shasum -a 256 --check SHA256SUMS
 
 ### 在本机编译打包
 
-安装 Rust stable、Python 3.11 或更新版本，以及目标平台的 C 编译器。打包脚本只收集已编译的程序，不代替编译；输出到 `dist/`，并更新 `dist/SHA256SUMS`。Linux 和 macOS 的 tar 包保留程序执行权限。
+仅在需要本地产物时执行本节。安装 Rust stable、Python 3.11 或更新版本，以及目标平台的 C 编译器。打包脚本只收集已编译的程序，不代替编译；默认输出到已被 Git 忽略的 `target/packages/`，并更新其中的 `SHA256SUMS`。Linux 和 macOS 的 tar 包保留程序执行权限。
 
 Windows x64（需要 Visual Studio C++ Build Tools）：
 
@@ -152,7 +170,7 @@ Windows x64（需要 Visual Studio C++ Build Tools）：
 rustup target add x86_64-pc-windows-msvc
 $env:RUSTFLAGS = '-C target-feature=+crt-static'
 cargo build --release --locked --target x86_64-pc-windows-msvc --bins --example stream_service
-python scripts/package-release.py --target x86_64-pc-windows-msvc --profile release --output-dir dist
+python scripts/package-release.py --target x86_64-pc-windows-msvc --profile release --output-dir target/packages
 ```
 
 Linux x64，以下依赖安装命令适用于 Ubuntu / Debian：
@@ -164,7 +182,7 @@ rustup target add x86_64-unknown-linux-musl
 export CC_x86_64_unknown_linux_musl=musl-gcc
 export CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER=musl-gcc
 cargo build --release --locked --target x86_64-unknown-linux-musl --bins --example stream_service
-python3 scripts/package-release.py --target x86_64-unknown-linux-musl --profile release --output-dir dist
+python3 scripts/package-release.py --target x86_64-unknown-linux-musl --profile release --output-dir target/packages
 ```
 
 macOS 需要 Xcode Command Line Tools（首次安装运行 `xcode-select --install`），在对应架构的 Mac 上执行：
@@ -174,7 +192,7 @@ macOS 需要 Xcode Command Line Tools（首次安装运行 `xcode-select --insta
 TARGET=aarch64-apple-darwin
 rustup target add "$TARGET"
 cargo build --release --locked --target "$TARGET" --bins --example stream_service
-python3 scripts/package-release.py --target "$TARGET" --profile release --output-dir dist
+python3 scripts/package-release.py --target "$TARGET" --profile release --output-dir target/packages
 ```
 
 跨系统编译还需要目标系统的链接器、C 工具链和 SDK，只有 `rustup target add` 不足以完成构建。统一生成全部平台包时使用上面的 GitHub Actions 工作流；它在 Windows、Linux 和两种架构的 macOS 环境中并行完成编译、测试和打包。

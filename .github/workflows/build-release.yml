@@ -1,7 +1,16 @@
-name: Build release packages
+name: Build and publish release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (blank: v + Cargo package version from the build)'
+        required: false
+        type: string
+      source_run_id:
+        description: 'Reuse a successful run of this workflow (blank: build all platforms)'
+        required: false
+        type: string
   push:
     tags:
       - 'v*'
@@ -11,6 +20,7 @@ permissions:
 
 jobs:
   build:
+    if: ${{ inputs.source_run_id == '' }}
     name: ${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
@@ -65,16 +75,52 @@ jobs:
         run: cargo test --release --all-targets --locked --target ${{ matrix.target }} -- --test-threads=2
 
       - name: Package release
-        run: python scripts/package-release.py --target ${{ matrix.target }} --profile release --output-dir dist
+        run: python scripts/package-release.py --target ${{ matrix.target }} --profile release --output-dir "${{ runner.temp }}/packages"
 
       - name: Upload package and checksums
         uses: actions/upload-artifact@v7
         with:
           name: my-frp-${{ matrix.target }}
           path: |
-            dist/*.zip
-            dist/*.tar.gz
-            dist/SHA256SUMS
+            ${{ runner.temp }}/packages/*.zip
+            ${{ runner.temp }}/packages/*.tar.gz
+            ${{ runner.temp }}/packages/SHA256SUMS
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: ${{ !cancelled() && (needs.build.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.source_run_id != '')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    concurrency:
+      group: release-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - name: Check out publishing tools
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Verify packages and publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE_RUN_ID: ${{ inputs.source_run_id || github.run_id }}
+          RELEASE_TAG: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
+        shell: bash
+        run: |
+          args=(--repo "$GITHUB_REPOSITORY" --run-id "$SOURCE_RUN_ID" --allow-current-run --output-dir "$RUNNER_TEMP/packages")
+          if [[ -n "$RELEASE_TAG" ]]; then
+            args+=(--tag "$RELEASE_TAG")
+          fi
+          python scripts/publish-release.py "${args[@]}"

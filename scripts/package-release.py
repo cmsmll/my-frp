@@ -214,7 +214,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--target", required=True, help="Rust target triple used for the Cargo build")
     parser.add_argument("--profile", default="release", help="Cargo output profile directory (default: release)")
-    parser.add_argument("--output-dir", type=Path, default=Path("dist"))
+    parser.add_argument("--output-dir", type=Path, default=Path("target/packages"))
     parser.add_argument("--target-dir", type=Path, default=Path("target"), help="Cargo target root directory")
     args = parser.parse_args()
     try:
