@@ -100,7 +100,7 @@ Linux / macOS，在项目根目录分别启动：
 
 构建成功后，在该次运行页面底部的 **Artifacts** 下载对应 target 的产物。每个 artifact 内含平台压缩包和 `SHA256SUMS`，保留 30 天；GitHub 网页下载的 artifact 外层也是 ZIP，需要先解开外层，再解开平台包。工作流只上传构建产物，不会自动创建 GitHub Release。
 
-压缩包内提供 `myfrps`、`myfrpc`、`server.json`、生产配置模板、`README.md`、中文 `QUICKSTART.txt` 和 `examples/stream_service`；Windows 程序带 `.exe` 后缀，Linux 包另外包含 `deploy/` 下的 systemd 模板。包内不包含运行数据库、签名私钥或真实管理凭证。两个 macOS 包是对应架构的命令行程序，未进行 Apple Developer 签名或公证。
+压缩包内提供 `myfrps`、`myfrpc`、`server.json`、生产配置模板、`README.md`、中文 `QUICKSTART.txt` 和 `examples/stream_service`；Windows 程序带 `.exe` 后缀并静态链接 C 运行库，Linux 包另外包含 `deploy/` 下的 systemd 模板。包内不包含运行数据库、签名私钥或真实管理凭证。两个 macOS 包是对应架构的命令行程序，未进行 Apple Developer 签名或公证。
 
 校验平台压缩包，Windows 使用 PowerShell 查看 SHA-256 并与同目录的 `SHA256SUMS` 对照：
 
@@ -150,6 +150,7 @@ Windows x64（需要 Visual Studio C++ Build Tools）：
 
 ```powershell
 rustup target add x86_64-pc-windows-msvc
+$env:RUSTFLAGS = '-C target-feature=+crt-static'
 cargo build --release --locked --target x86_64-pc-windows-msvc --bins --example stream_service
 python scripts/package-release.py --target x86_64-pc-windows-msvc --profile release --output-dir dist
 ```
