@@ -273,7 +273,7 @@ def publish(args, output: Path) -> int:
     if (os.environ.get("GITHUB_REF_TYPE") == "tag"
             and os.environ.get("GITHUB_REF_NAME") != tag):
         raise ReleaseError("The triggering tag does not match the version in the actual build commit")
-    require_tag_target(args.repo, tag, run["head_sha"])
+    tag_target = require_tag_target(args.repo, tag, run["head_sha"])
     packages = download_packages(args.repo, run, version, output)
     release = find_release(args.repo, tag)
     missing = sorted(packages)
@@ -290,8 +290,17 @@ def publish(args, output: Path) -> int:
     if release is None:
         notes = output / "release-notes.md"
         notes.write_text(release_notes(args.repo, run, version), encoding="utf-8", newline="\n")
-        command = ["release", "create", tag, "--repo", args.repo, "--draft", "--target", run["head_sha"],
+        # Existing tags already identify the verified build commit. Omit
+        # target_commitish in this case: it is unused for tag creation and a
+        # historical workflow revision can require additional API permissions.
+        # Check again after downloads so a concurrently created tag is checked.
+        tag_target = require_tag_target(args.repo, tag, run["head_sha"])
+        command = ["release", "create", tag, "--repo", args.repo, "--draft",
                    "--title", f"my-frp {tag}", "--notes-file", str(notes)]
+        if tag_target is not None:
+            command.append("--verify-tag")
+        else:
+            command.extend(["--target", run["head_sha"]])
         if "-" in version:
             command.append("--prerelease")
         gh(command)
