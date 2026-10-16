@@ -1,0 +1,13 @@
+{
+  "admin_listen": "127.0.0.1:7400",
+  "tunnel_listen": "0.0.0.0:7443",
+  "public_url": "wss://frp.example.com:7443",
+  "data_dir": "../data/server",
+  "admin_password": null,
+  "reset_password": false,
+  "tls_cert": "../certs/fullchain.pem",
+  "tls_key": "../certs/privkey.pem",
+  "allow_insecure": false,
+  "port_min": 10000,
+  "port_max": 60000
+}

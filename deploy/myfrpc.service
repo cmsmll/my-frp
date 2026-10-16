@@ -1,0 +1,25 @@
+[Unit]
+Description=my-frp TCP tunnel client
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=myfrp
+Group=myfrp
+WorkingDirectory=/var/lib/myfrp-client
+StateDirectory=myfrp-client
+StateDirectoryMode=0700
+ExecStart=/usr/local/bin/myfrpc --data-dir /var/lib/myfrp-client
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

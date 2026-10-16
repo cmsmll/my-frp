@@ -1,0 +1,13 @@
+{
+  "admin_listen": "127.0.0.1:7400",
+  "tunnel_listen": "127.0.0.1:7443",
+  "public_url": "ws://127.0.0.1:7443",
+  "data_dir": "data/server",
+  "admin_password": null,
+  "reset_password": false,
+  "tls_cert": null,
+  "tls_key": null,
+  "allow_insecure": true,
+  "port_min": 10000,
+  "port_max": 60000
+}
