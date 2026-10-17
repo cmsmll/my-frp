@@ -30,7 +30,7 @@ use tokio_util::sync::CancellationToken;
 #[derive(Parser, Debug)]
 #[command(version, about = "my-frp 客户端，内嵌本地 Web 管理界面")]
 pub struct Options {
-    #[arg(long, default_value = "127.0.0.1:7401")]
+    #[arg(long, default_value = "127.0.0.1:10087")]
     pub admin_listen: SocketAddr,
     #[arg(long, default_value = "data/client")]
     pub data_dir: PathBuf,

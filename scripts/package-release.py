@@ -42,9 +42,9 @@ def default_config(production: bool = False) -> bytes:
     # Deliberately generate clean templates: the working server.json can contain
     # a developer's password, domain, certificate paths, and other private data.
     value = {
-        "admin_listen": "127.0.0.1:7400",
-        "tunnel_listen": "0.0.0.0:7443" if production else "127.0.0.1:7443",
-        "public_url": "wss://frp.example.com:7443" if production else "ws://127.0.0.1:7443",
+        "admin_listen": "127.0.0.1:10086",
+        "tunnel_listen": "0.0.0.0:10088" if production else "127.0.0.1:10088",
+        "public_url": "wss://frp.example.com:10088" if production else "ws://127.0.0.1:10088",
         "data_dir": "../data/server" if production else "data/server",
         "admin_password": None,
         "reset_password": False,
@@ -81,8 +81,8 @@ Web 页面关闭不会停止穿透服务。
 
 二、首次登录和连接
 
-服务端管理页面：http://127.0.0.1:7400
-客户端管理页面：http://127.0.0.1:7401
+服务端管理页面：http://127.0.0.1:10086
+客户端管理页面：http://127.0.0.1:10087
 两端首次初始化的密码均为 admin，登录后必须分别改成至少 12 个字符的新密码。
 密码修改后重新登录；后续启动沿用已有密码，不会重置。请自行妥善保存新密码。
 
@@ -90,8 +90,8 @@ Web 页面关闭不会停止穿透服务。
 2. 在客户端新建连接，填写本地服务地址（例如 127.0.0.1:8080）和 JWT。
 3. 等待在线后访问 http://127.0.0.1:18080，即可访问本地服务。
 
-默认 server.json 仅监听本机，public_url 为 ws://127.0.0.1:7443。
-7400 / 7401 为两端管理页面端口；7443 为穿透接入端口。
+默认 server.json 仅监听本机，public_url 为 ws://127.0.0.1:10088。
+10086 / 10087 为两端管理页面端口；10088 为穿透接入端口。
 隧道业务端口需在 10000—60000 范围内，且不得已被占用。
 默认模板仅用于同一台机器联调；客户端 --allow-insecure 允许明文 WS。
 程序会按需创建 data/server 和 data/client，持久保存 SQLite、管理密码和签名密钥。
@@ -110,7 +110,7 @@ Web 页面关闭不会停止穿透服务。
 客户端：
   {client}
 
-放行穿透接入端口（默认 7443）及各隧道业务端口；管理页面默认保留在本机回环地址。
+放行穿透接入端口（默认 10088）及各隧道业务端口；管理页面默认保留在本机回环地址。
 通过服务器本机浏览器或 SSH 端口转发管理。public_url 不会自动配置 DNS / 防火墙。
 修改服务端配置需重启；更换 public_url 后应刷新隧道 JWT 并更新客户端。
 穿透通道 TLS 不会自动为业务入口提供 HTTPS / WSS，业务加密按本地服务配置。

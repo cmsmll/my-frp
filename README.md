@@ -72,10 +72,10 @@ Linux / macOS，在项目根目录分别启动：
 
 两个程序首次初始化时，Web 管理默认密码均为 `admin`。首次登录后必须设置至少 12 个字符的新密码，完成后使用新密码重新登录，才能管理隧道。两端密码独立保存，后续启动沿用数据库中的密码，升级不会将已有密码重置为 `admin`。
 
-1. 打开服务端页面 <http://127.0.0.1:7400>，使用 `admin` 登录，按提示修改密码并重新登录。
+1. 打开服务端页面 <http://127.0.0.1:10086>，使用 `admin` 登录，按提示修改密码并重新登录。
 2. 创建隧道，例如公网映射端口 `18080`，有效期 `30` 天；本机测试可将监听地址设为 `127.0.0.1`。
 3. 复制弹出的 JWT。关闭弹窗后不会再次展示原文，需要时使用“刷新凭证”。
-4. 打开客户端页面 <http://127.0.0.1:7401>，使用 `admin` 登录，按提示修改密码并重新登录。
+4. 打开客户端页面 <http://127.0.0.1:10087>，使用 `admin` 登录，按提示修改密码并重新登录。
 5. 新建连接，填写运行中的本地服务地址，例如 `127.0.0.1:8080`，粘贴 JWT。
 6. 当页面显示在线后，访问 `http://127.0.0.1:18080` 即可到达本地 HTTP 服务。
 
@@ -85,14 +85,14 @@ Linux / macOS，在项目根目录分别启动：
 
 ## 多平台打包与下载
 
-支持以下 4 个发布目标，每个包同时包含服务端、客户端和 WS / SSE 示例程序。文件名中的版本号来自 `Cargo.toml`，当前为 `0.1.0`。
+支持以下 4 个发布目标，每个包同时包含服务端、客户端和 WS / SSE 示例程序。文件名中的版本号来自 `Cargo.toml`，当前为 `0.1.1`。
 
 | 平台 | Rust target | 压缩包 |
 | --- | --- | --- |
-| Windows x64 | `x86_64-pc-windows-msvc` | `my-frp-0.1.0-windows-x86_64.zip` |
-| Linux x64（musl） | `x86_64-unknown-linux-musl` | `my-frp-0.1.0-linux-x86_64.tar.gz` |
-| macOS Intel | `x86_64-apple-darwin` | `my-frp-0.1.0-macos-x86_64.tar.gz` |
-| macOS Apple Silicon | `aarch64-apple-darwin` | `my-frp-0.1.0-macos-aarch64.tar.gz` |
+| Windows x64 | `x86_64-pc-windows-msvc` | `my-frp-0.1.1-windows-x86_64.zip` |
+| Linux x64（musl） | `x86_64-unknown-linux-musl` | `my-frp-0.1.1-linux-x86_64.tar.gz` |
+| macOS Intel | `x86_64-apple-darwin` | `my-frp-0.1.1-macos-x86_64.tar.gz` |
+| macOS Apple Silicon | `aarch64-apple-darwin` | `my-frp-0.1.1-macos-aarch64.tar.gz` |
 
 ### 从 GitHub Release 下载
 
@@ -103,7 +103,7 @@ Linux / macOS，在项目根目录分别启动：
 校验平台压缩包，Windows 使用 PowerShell 查看 SHA-256 并与同目录的 `SHA256SUMS` 对照：
 
 ```powershell
-Get-FileHash .\my-frp-0.1.0-windows-x86_64.zip -Algorithm SHA256
+Get-FileHash .\my-frp-0.1.1-windows-x86_64.zip -Algorithm SHA256
 Get-Content .\SHA256SUMS
 ```
 
@@ -160,7 +160,7 @@ Actions 的 **Artifacts** 仅作为构建及发布过程的中间产物，保留
 ./examples/stream_service 127.0.0.1:18090
 ```
 
-访问服务端 <http://127.0.0.1:7400> 和客户端 <http://127.0.0.1:7401>，按前文创建隧道。若运行了示例服务，本地地址填写 `127.0.0.1:18090`。首次管理密码为 `admin`，登录后必须修改。程序停止后配置和凭证仍保存在各自的数据目录中。
+访问服务端 <http://127.0.0.1:10086> 和客户端 <http://127.0.0.1:10087>，按前文创建隧道。若运行了示例服务，本地地址填写 `127.0.0.1:18090`。首次管理密码为 `admin`，登录后必须修改。程序停止后配置和凭证仍保存在各自的数据目录中。
 
 ### 在本机编译打包
 
@@ -217,13 +217,13 @@ pwsh -NoProfile -File .\examples\start-stream-demo.ps1
 | --- | --- |
 | <http://127.0.0.1:18080> | 经过穿透访问的测试页面，WS 和 SSE 都通过此入口连接 |
 | <http://127.0.0.1:18090> | 本地服务，供直接访问对照 |
-| <http://127.0.0.1:17400> | 独立的演示服务端管理页面 |
-| <http://127.0.0.1:17401> | 独立的演示客户端管理页面 |
-| `ws://127.0.0.1:17443` | 演示穿透通道的接入地址 |
+| <http://127.0.0.1:10086> | 独立的演示服务端管理页面 |
+| <http://127.0.0.1:10087> | 独立的演示客户端管理页面 |
+| `ws://127.0.0.1:10088` | 演示穿透通道的接入地址 |
 
 两端演示管理密码均为 `stream-demo-password-2026`。演示数据与配置保存在 `target/stream-demo/`，不修改根目录的 `server.json` 或正式数据目录。脚本保持前台运行，按 Ctrl+C 清理本次启动的进程。
 
-需要发布版时添加 `-Release`；已编译对应模式的程序后，可添加 `-SkipBuild` 跳过编译。只运行自动验证并退出时添加 `-VerifyOnly`。默认端口被占用时，使用 `-ServerAdminPort`、`-ClientAdminPort`、`-TransportPort`、`-PublicPort`、`-LocalPort` 指定不同端口。
+需要发布版时添加 `-Release`；已编译对应模式的程序后，可添加 `-SkipBuild` 跳过编译。只运行自动验证并退出时添加 `-VerifyOnly`。演示的管理和接入端口与快速开始相同，运行前应停止占用这些端口的程序；也可以使用 `-ServerAdminPort`、`-ClientAdminPort`、`-TransportPort`、`-PublicPort`、`-LocalPort` 指定不同端口。
 
 打开 **18080 端口**的页面，连接 WS 后发送消息，确认收到相同内容；订阅 SSE，确认事件逐条到达。也可以在另一个终端观察流式响应：
 
@@ -276,9 +276,9 @@ SSE 未指定 `count` 时持续发送；支持 `Last-Event-ID` 恢复序号，�
 
 ```json
 {
-  "admin_listen": "127.0.0.1:7400",
-  "tunnel_listen": "0.0.0.0:7443",
-  "public_url": "wss://frp.example.com:7443",
+  "admin_listen": "127.0.0.1:10086",
+  "tunnel_listen": "0.0.0.0:10088",
+  "public_url": "wss://frp.example.com:10088",
   "data_dir": "/var/lib/myfrp-server",
   "tls_cert": "/etc/myfrp/fullchain.pem",
   "tls_key": "/etc/myfrp/privkey.pem",
@@ -307,7 +307,7 @@ cargo run --locked --bin myfrps -- ./examples/server.production.json
 
 `public_url` 是写入 JWT 的客户端接入地址，**不是公网映射端口或管理地址**。必须包含客户端能访问的域名和端口，不能带路径、账号、查询参数或片段。TLS 与 `ws/wss` 配置必须匹配。
 
-管理界面默认只绑定回环地址。启用上述 TLS 后管理页面为 `https://127.0.0.1:7400`，浏览器访问名称必须与证书匹配；可以通过 SSH 转发并使用匹配域名访问，或将 JSON 中的 `admin_listen` 设置为 `"0.0.0.0:7400"`，使用 `https://frp.example.com:7400` 管理。非回环管理地址必须启用 TLS。
+管理界面默认只绑定回环地址。启用上述 TLS 后管理页面为 `https://127.0.0.1:10086`，浏览器访问名称必须与证书匹配；可以通过 SSH 转发并使用匹配域名访问，或将 JSON 中的 `admin_listen` 设置为 `"0.0.0.0:10086"`，使用 `https://frp.example.com:10086` 管理。非回环管理地址必须启用 TLS。
 
 客户端正常启动即可：
 
@@ -338,9 +338,9 @@ cargo run --locked --bin myfrpc
 
 | JSON 字段 | 未填写时的默认值 | 含义 |
 | --- | --- | --- |
-| `admin_listen` | `"127.0.0.1:7400"` | 管理页面监听地址 |
-| `tunnel_listen` | `"0.0.0.0:7443"` | 客户端接入监听地址 |
-| `public_url` | `"wss://localhost:7443"` | 写入 JWT 的客户端接入地址 |
+| `admin_listen` | `"127.0.0.1:10086"` | 管理页面监听地址 |
+| `tunnel_listen` | `"0.0.0.0:10088"` | 客户端接入监听地址 |
+| `public_url` | `"wss://localhost:10088"` | 写入 JWT 的客户端接入地址 |
 | `data_dir` | `"data/server"` | 数据目录，相对配置文件目录解析 |
 | `admin_password` | `null` | 首次启动管理密码；未指定则为 `admin` 并强制修改，自定义密码至少 12 个字符 |
 | `reset_password` | `false` | 本次启动是否重置管理密码 |
@@ -358,7 +358,7 @@ cargo run --locked --bin myfrpc
 
 | 参数 | 默认值 | 含义 |
 | --- | --- | --- |
-| `--admin-listen` | `127.0.0.1:7401` | 客户端管理页面监听地址 |
+| `--admin-listen` | `127.0.0.1:10087` | 客户端管理页面监听地址 |
 | `--data-dir` | `data/client` | 数据目录，相对当前工作目录解析 |
 | `--admin-password` | `admin` | 首次启动管理密码，也可通过 `MYFRP_ADMIN_PASSWORD` 指定；默认密码首次登录必须修改 |
 | `--reset-password` | 关闭 | 本次启动重置管理密码 |

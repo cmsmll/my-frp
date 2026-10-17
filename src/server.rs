@@ -249,7 +249,7 @@ pub async fn run(o: Config) -> Result<()> {
     }
     if !tls && !o.allow_insecure {
         bail!(
-            "请在服务端 JSON 中配置 tls_cert 和 tls_key；本地调试可设置 allow_insecure 为 true、public_url 为 ws://127.0.0.1:7443"
+            "请在服务端 JSON 中配置 tls_cert 和 tls_key；本地调试可设置 allow_insecure 为 true、public_url 为 ws://127.0.0.1:10088"
         );
     }
     if tls != o.public_url.starts_with("wss://") {

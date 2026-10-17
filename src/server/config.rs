@@ -27,9 +27,9 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            admin_listen: SocketAddr::from(([127, 0, 0, 1], 7400)),
-            tunnel_listen: SocketAddr::from(([0, 0, 0, 0], 7443)),
-            public_url: "wss://localhost:7443".into(),
+            admin_listen: SocketAddr::from(([127, 0, 0, 1], 10086)),
+            tunnel_listen: SocketAddr::from(([0, 0, 0, 0], 10088)),
+            public_url: "wss://localhost:10088".into(),
             data_dir: "data/server".into(),
             admin_password: None,
             reset_password: false,
@@ -89,7 +89,7 @@ mod tests {
         assert_eq!(config.data_dir, base.join("data/server"));
         assert_eq!(config.tls_cert.unwrap(), base.join("certs/fullchain.pem"));
         assert_eq!(config.tls_key.unwrap(), base.join("certs/key.pem"));
-        assert_eq!(config.admin_listen, "127.0.0.1:7400".parse().unwrap());
+        assert_eq!(config.admin_listen, "127.0.0.1:10086".parse().unwrap());
         assert!(!config.allow_insecure);
         assert!(config.admin_password.is_none());
     }
@@ -98,7 +98,7 @@ mod tests {
     fn configuration_typos_are_errors_instead_of_silent_defaults() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("server.json");
-        std::fs::write(&path, r#"{"tunnel_lisen":"127.0.0.1:7443"}"#).unwrap();
+        std::fs::write(&path, r#"{"tunnel_lisen":"127.0.0.1:10088"}"#).unwrap();
         let error = Config::load(path).err().unwrap();
         assert!(format!("{error:#}").contains("unknown field"));
     }

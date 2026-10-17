@@ -4,9 +4,9 @@ param(
     [switch]$Release,
     [switch]$SkipBuild,
     [switch]$VerifyOnly,
-    [ValidateRange(1024, 65535)][int]$ServerAdminPort = 17400,
-    [ValidateRange(1024, 65535)][int]$ClientAdminPort = 17401,
-    [ValidateRange(1024, 65535)][int]$TransportPort = 17443,
+    [ValidateRange(1024, 65535)][int]$ServerAdminPort = 10086,
+    [ValidateRange(1024, 65535)][int]$ClientAdminPort = 10087,
+    [ValidateRange(1024, 65535)][int]$TransportPort = 10088,
     [ValidateRange(1024, 65535)][int]$PublicPort = 18080,
     [ValidateRange(1024, 65535)][int]$LocalPort = 18090
 )
